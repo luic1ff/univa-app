@@ -105,6 +105,7 @@ const priorityConfig = {
 
 function getGreeting(): string {
     const hour = new Date().getHours();
+    if (hour < 6) return "Доброї ночі";
     if (hour < 12) return "Доброго ранку";
     if (hour < 18) return "Доброго дня";
     return "Доброго вечора";
