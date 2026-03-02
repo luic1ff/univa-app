@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/shadcn/ui/card"
 import { Separator } from "@/shared/shadcn/ui/separator"
@@ -5,47 +6,72 @@ import { Button } from "@/shared/shadcn/ui/button"
 import { Skeleton } from "@/shared/shadcn/ui/skeleton"
 import { Toggle } from "./settings.toggle"
 import { containerAnim, itemAnim } from "./settings.animations"
-import type { ToggleSetting, SelectorOption, SectionConfig } from "./settings.types"
-
+import { SETTING_VALUE_ICON_MAP } from "./settings.icon-map"
+import type { SettingItem, SettingValue } from "@/entities/settings/api/settings.api"
+import { getSelectedValue } from "@/entities/settings/api/settings.api"
+import type { LucideIcon } from "lucide-react"
 
 /* ════════════════════════════════════════════════════════════
-   ToggleSection — renders a Card with a list of toggle rows
-   driven entirely by a config array
+   DynamicSettingsCard
+   Renders one Card for a group of SettingItem[].
+   - "bool" items  → toggle row
+   - "enum" items  → horizontal selector grid (options from API)
+   Icons for option values come from the frontend SETTING_VALUE_ICON_MAP.
    ════════════════════════════════════════════════════════════ */
 
-interface ToggleSectionProps {
-    section: SectionConfig
-    settings: ToggleSetting[]
-    values: Record<string, boolean>
-    onChange: (id: string, value: boolean) => void
+interface DynamicSettingsCardProps {
+    title: string
+    description?: string
+    icon?: LucideIcon
+    settings: SettingItem[]
+    draft: Record<string, string>         // key → current string value
+    onChange: (key: string, value: string) => void
+    /** Optional number of grid columns for enum options (default: auto by count) */
+    enumColumns?: 2 | 3
 }
 
-export function ToggleSection({ section, settings, values, onChange }: ToggleSectionProps) {
+export function DynamicSettingsCard({
+    title, description, icon: Icon, settings, draft, onChange, enumColumns,
+}: DynamicSettingsCardProps) {
+    const bools = settings.filter(s => s.type === "bool")
+    const enums = settings.filter(s => s.type === "enum")
+
     return (
         <motion.div variants={itemAnim}>
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
-                        {section.icon && <section.icon className="size-5 text-primary" />}
-                        {section.title}
+                        {Icon && <Icon className="size-5 text-primary" />}
+                        {title}
                     </CardTitle>
-                    {section.description && <CardDescription>{section.description}</CardDescription>}
+                    {description && <CardDescription>{description}</CardDescription>}
                 </CardHeader>
-                <CardContent className="flex flex-col gap-4">
-                    {settings.map((s, idx) => (
-                        <div key={s.id}>
+                <CardContent className="flex flex-col gap-5">
+                    {/* Enum selectors */}
+                    {enums.map((s, idx) => (
+                        <div key={s.key}>
+                            {idx > 0 && <Separator className="mb-5" />}
+                            <EnumSettingRow
+                                item={s}
+                                selected={draft[s.key] ?? getSelectedValue(s)}
+                                onChange={v => onChange(s.key, v)}
+                                columns={enumColumns}
+                            />
+                        </div>
+                    ))}
+
+                    {/* Bool toggles */}
+                    {bools.length > 0 && enums.length > 0 && <Separator />}
+                    {bools.map((s, idx) => (
+                        <div key={s.key}>
                             {idx > 0 && <Separator className="mb-4" />}
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium">{s.label}</p>
-                                    <p className="text-xs text-muted-foreground">{s.description}</p>
-                                </div>
-                                <Toggle
-                                    checked={values[s.id] ?? s.defaultValue}
-                                    onChange={v => onChange(s.id, v)}
-                                    label={s.label}
-                                />
-                            </div>
+                            <BoolSettingRow
+                                item={s}
+                                checked={draft[s.key] !== undefined
+                                    ? draft[s.key] === "1"
+                                    : getSelectedValue(s) === "1"}
+                                onChange={v => onChange(s.key, v ? "1" : "0")}
+                            />
                         </div>
                     ))}
                 </CardContent>
@@ -54,173 +80,80 @@ export function ToggleSection({ section, settings, values, onChange }: ToggleSec
     )
 }
 
-/* ════════════════════════════════════════════════════════════
-   SelectorSection — renders a Card with a grid of selectable
-   options (theme picker, language, AI model, etc.)
-   ════════════════════════════════════════════════════════════ */
+/* ── Bool row ─────────────────────────────────────────────── */
 
-interface SelectorSectionProps<T extends string> {
-    section: SectionConfig
-    label?: string
-    options: SelectorOption<T>[]
-    value: T
-    onChange: (value: T) => void
-    columns?: 2 | 3
-    variant?: "card" | "compact" | "emoji"
-}
-
-export function SelectorSection<T extends string>({
-    section, label, options, value, onChange, columns = 3, variant = "card",
-}: SelectorSectionProps<T>) {
-    const gridCls = columns === 2 ? "grid-cols-2" : "grid-cols-3"
-
+function BoolSettingRow({ item, checked, onChange }: {
+    item: SettingItem
+    checked: boolean
+    onChange: (v: boolean) => void
+}) {
     return (
-        <motion.div variants={itemAnim}>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        {section.icon && <section.icon className="size-5 text-primary" />}
-                        {section.title}
-                    </CardTitle>
-                    {section.description && <CardDescription>{section.description}</CardDescription>}
-                </CardHeader>
-                <CardContent>
-                    {label && <p className="text-sm font-medium mb-2">{label}</p>}
-                    <div className={`grid ${gridCls} gap-3`}>
-                        {options.map(opt => {
-                            const isActive = value === opt.id
-                            const base = "rounded-lg border transition-all cursor-pointer"
-                            const activeStyle = isActive ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:border-muted-foreground/30"
-
-                            if (variant === "emoji") {
-                                return (
-                                    <button key={opt.id} onClick={() => onChange(opt.id)}
-                                        className={`flex items-center gap-3 p-3 ${base} ${activeStyle}`}>
-                                        {opt.emoji && <span className="text-xl">{opt.emoji}</span>}
-                                        <span className="text-sm font-medium">{opt.label}</span>
-                                    </button>
-                                )
-                            }
-                            if (variant === "compact") {
-                                return (
-                                    <button key={opt.id} onClick={() => onChange(opt.id)}
-                                        className={`flex flex-col items-center gap-2 p-4 ${base} ${activeStyle}`}>
-                                        {opt.icon && (
-                                            <div className="flex size-10 items-center justify-center rounded-md bg-secondary">
-                                                <opt.icon className="size-5 text-muted-foreground" />
-                                            </div>
-                                        )}
-                                        <p className="text-sm font-medium">{opt.label}</p>
-                                        {opt.description && <p className="text-[10px] text-muted-foreground text-center">{opt.description}</p>}
-                                    </button>
-                                )
-                            }
-                            // "card" variant
-                            return (
-                                <button key={opt.id} onClick={() => onChange(opt.id)}
-                                    className={`flex flex-col items-center gap-2 p-4 ${base} ${activeStyle}`}>
-                                    {opt.icon && (
-                                        <div className="flex size-10 items-center justify-center rounded-md bg-secondary">
-                                            <opt.icon className="size-5 text-muted-foreground" />
-                                        </div>
-                                    )}
-                                    <p className="text-sm font-medium">{opt.label}</p>
-                                    {opt.description && (
-                                        <p className="text-[10px] text-muted-foreground text-center">{opt.description}</p>
-                                    )}
-                                </button>
-                            )
-                        })}
-                    </div>
-                </CardContent>
-            </Card>
-        </motion.div>
+        <div className="flex items-center justify-between">
+            <div>
+                <p className="text-sm font-medium">{item.label}</p>
+                {item.description && (
+                    <p className="text-xs text-muted-foreground">{item.description}</p>
+                )}
+            </div>
+            <Toggle checked={checked} onChange={onChange} label={item.label} />
+        </div>
     )
 }
 
-/* ════════════════════════════════════════════════════════════
-   MultiSelectorSection — one Card with multiple selector groups
-   ════════════════════════════════════════════════════════════ */
+/* ── Enum row ─────────────────────────────────────────────── */
 
-interface SelectorGroup<T extends string = string> {
-    id: string
-    label: string
-    options: SelectorOption<T>[]
+function EnumSettingRow({ item, selected, onChange, columns }: {
+    item: SettingItem
+    selected: string
+    onChange: (v: string) => void
     columns?: 2 | 3
-    variant?: "card" | "compact" | "emoji"
-}
+}) {
+    const cols = columns ?? (item.values.length <= 2 ? 2 : 3)
+    const gridCls = cols === 2 ? "grid-cols-2" : "grid-cols-3"
 
-interface MultiSelectorSectionProps {
-    section: SectionConfig
-    groups: SelectorGroup[]
-    values: Record<string, string>
-    onChange: (groupId: string, value: string) => void
-}
-
-export function MultiSelectorSection({ section, groups, values, onChange }: MultiSelectorSectionProps) {
     return (
-        <motion.div variants={itemAnim}>
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                        {section.icon && <section.icon className="size-5 text-primary" />}
-                        {section.title}
-                    </CardTitle>
-                    {section.description && <CardDescription>{section.description}</CardDescription>}
-                </CardHeader>
-                <CardContent className="flex flex-col gap-5">
-                    {groups.map((group, idx) => {
-                        const gridCls = (group.columns ?? 3) === 2 ? "grid-cols-2" : "grid-cols-3"
-                        return (
-                            <div key={group.id}>
-                                {idx > 0 && <Separator className="mb-5" />}
-                                <p className="text-sm font-medium mb-2">{group.label}</p>
-                                <div className={`grid ${gridCls} gap-3`}>
-                                    {group.options.map(opt => {
-                                        const isActive = values[group.id] === opt.id
-                                        const base = "rounded-lg border transition-all cursor-pointer"
-                                        const activeStyle = isActive ? "border-primary bg-primary/5 shadow-sm" : "border-border hover:border-muted-foreground/30"
-                                        const variant = group.variant ?? "compact"
+        <div>
+            <p className="text-sm font-medium mb-2">{item.label}</p>
+            {item.description && (
+                <p className="text-xs text-muted-foreground mb-3">{item.description}</p>
+            )}
+            <div className={`grid ${gridCls} gap-3`}>
+                {item.values.map(opt => (
+                    <EnumOption
+                        key={opt.id}
+                        option={opt}
+                        isActive={selected === opt.value}
+                        onClick={() => onChange(opt.value)}
+                    />
+                ))}
+            </div>
+        </div>
+    )
+}
 
-                                        if (variant === "emoji") {
-                                            return (
-                                                <button key={opt.id} onClick={() => onChange(group.id, opt.id)}
-                                                    className={`flex items-center gap-2 p-3 ${base} ${activeStyle}`}>
-                                                    {opt.emoji && <span className="text-lg">{opt.emoji}</span>}
-                                                    <span className="text-sm font-medium">{opt.label}</span>
-                                                </button>
-                                            )
-                                        }
-                                        if (variant === "card") {
-                                            return (
-                                                <button key={opt.id} onClick={() => onChange(group.id, opt.id)}
-                                                    className={`flex flex-col items-center gap-2 p-4 ${base} ${activeStyle}`}>
-                                                    {opt.icon && (
-                                                        <div className="flex size-10 items-center justify-center rounded-md bg-secondary">
-                                                            <opt.icon className="size-5 text-muted-foreground" />
-                                                        </div>
-                                                    )}
-                                                    <p className="text-sm font-medium">{opt.label}</p>
-                                                    {opt.description && <p className="text-[10px] text-muted-foreground text-center">{opt.description}</p>}
-                                                </button>
-                                            )
-                                        }
-                                        // compact
-                                        return (
-                                            <button key={opt.id} onClick={() => onChange(group.id, opt.id)}
-                                                className={`flex flex-col items-center gap-1 p-3 ${base} ${activeStyle}`}>
-                                                <span className="text-sm font-medium">{opt.label}</span>
-                                                {opt.description && <span className="text-[10px] text-muted-foreground">{opt.description}</span>}
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-                            </div>
-                        )
-                    })}
-                </CardContent>
-            </Card>
-        </motion.div>
+function EnumOption({ option, isActive, onClick }: {
+    option: SettingValue
+    isActive: boolean
+    onClick: () => void
+}) {
+    const Icon = SETTING_VALUE_ICON_MAP[option.value]
+    const base = "rounded-lg border transition-all cursor-pointer"
+    const active = isActive
+        ? "border-primary bg-primary/5 shadow-sm"
+        : "border-border hover:border-muted-foreground/30"
+
+    return (
+        <button
+            onClick={onClick}
+            className={`flex flex-col items-center gap-2 p-4 ${base} ${active}`}
+        >
+            {Icon && (
+                <div className="flex size-10 items-center justify-center rounded-md bg-secondary">
+                    <Icon className="size-5 text-muted-foreground" />
+                </div>
+            )}
+            <p className="text-sm font-medium">{option.label}</p>
+        </button>
     )
 }
 
@@ -234,14 +167,18 @@ interface TabShellProps {
     onSave?: () => void
     isSaving?: boolean
     isDirty?: boolean
+    error?: string | null
 }
 
-export function TabShell({ children, showSave = true, onSave, isSaving, isDirty }: TabShellProps) {
+export function TabShell({ children, showSave = true, onSave, isSaving, isDirty, error }: TabShellProps) {
     return (
         <motion.div className="flex flex-col gap-6" variants={containerAnim} initial="hidden" animate="visible">
             {children}
             {showSave && (
-                <motion.div variants={itemAnim} className="flex justify-end">
+                <motion.div variants={itemAnim} className="flex items-center justify-end gap-3">
+                    {error && (
+                        <p className="text-sm text-destructive">{error}</p>
+                    )}
                     <Button
                         onClick={onSave}
                         disabled={isSaving || !isDirty}
@@ -283,26 +220,22 @@ export function SettingsLoadingShell() {
 }
 
 /* ════════════════════════════════════════════════════════════
-   useToggleState — hook to manage a group of toggle values
-   from a config array
+   useSettingsDraft — unified state hook for all backend-driven tabs.
+   Holds draft[key] = string for every setting in a group.
    ════════════════════════════════════════════════════════════ */
-
-import { useState } from "react"
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function useToggleState(settings: ToggleSetting[]) {
-    const initial = Object.fromEntries(settings.map(s => [s.id, s.defaultValue]))
-    const [values, setValues] = useState<Record<string, boolean>>(initial)
-    const update = (id: string, v: boolean) => setValues(prev => ({ ...prev, [id]: v }))
-    return { values, update }
-}
+export function useSettingsDraft(items: SettingItem[] | undefined) {
+    const initial = items
+        ? Object.fromEntries(items.map(s => [s.key, getSelectedValue(s)]))
+        : {}
+    const [draft, setDraft] = useState<Record<string, string>>(initial)
 
-/* ════════════════════════════════════════════════════════════
-   useSelectorState — hook to manage a group of selector values
-   ════════════════════════════════════════════════════════════ */
+    const set = (key: string, value: string) =>
+        setDraft(prev => ({ ...prev, [key]: value }))
 
-export function useSelectorState(defaults: Record<string, string>) {
-    const [values, setValues] = useState(defaults)
-    const update = (id: string, v: string) => setValues(prev => ({ ...prev, [id]: v }))
-    return { values, update }
+    const reset = (items: SettingItem[]) =>
+        setDraft(Object.fromEntries(items.map(s => [s.key, getSelectedValue(s)])))
+
+    return { draft, set, reset }
 }

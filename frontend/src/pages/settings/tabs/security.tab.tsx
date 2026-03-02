@@ -5,9 +5,12 @@ import { Button } from "@/shared/shadcn/ui/button"
 import { Badge } from "@/shared/shadcn/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/shadcn/ui/card"
 import { Separator } from "@/shared/shadcn/ui/separator"
-import { MonitorIcon, SmartphoneIcon, LogOutIcon } from "lucide-react"
+import { MonitorIcon, SmartphoneIcon, LogOutIcon, KeyIcon, ShieldIcon, ActivityIcon } from "lucide-react"
 import { itemAnim, containerAnim } from "../settings.animations"
-import { passwordSection, twoFASection, sessionsSection } from "../config/security.config"
+
+const passwordSection = { title: "Пароль", icon: KeyIcon }
+const twoFASection = { title: "Двофакторна аутентифікація", icon: ShieldIcon, description: "Додатковий рівень захисту для вашого акаунту" }
+const sessionsSection = { title: "Активні сесії", icon: ActivityIcon, description: "Пристрої, що мають доступ до вашого акаунту" }
 
 const sessions = [
     { device: "MacBook Pro", icon: MonitorIcon, location: "Київ, Україна", current: true },

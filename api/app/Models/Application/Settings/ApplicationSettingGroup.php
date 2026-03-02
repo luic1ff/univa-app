@@ -15,6 +15,7 @@ class ApplicationSettingGroup extends Model
         'code',
         'name',
     ];
+
     public const NOTIFICATION_SETTINGS_GROUP_ID = 1;
     public const APPEARANCE_SETTINGS_GROUP_ID = 2;
     public const PRIVACY_SETTINGS_GROUP_ID = 3;

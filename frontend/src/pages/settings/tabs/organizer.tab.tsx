@@ -1,71 +1,42 @@
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
 import { LayoutListIcon } from "lucide-react"
-import { TabShell, ToggleSection, SelectorSection, SettingsLoadingShell } from "../settings.renderers"
+import { TabShell, DynamicSettingsCard, SettingsLoadingShell } from "../settings.renderers"
 import { useSettingsGroup } from "@/entities/settings/hooks/use-settings-group"
-import { useUpdateSetting } from "@/entities/settings/hooks/use-update-setting"
+import { useSettingsDraft } from "@/entities/settings/hooks/use-settings-draft"
 import type { TabDef } from "../settings.types"
 
-const GROUP_ID = 10 // ORGANIZER_SETTINGS_GROUP_ID
-
-const VIEW_OPTIONS = [
-    { id: "kanban", label: "Kanban", description: "Стовпці задач" },
-    { id: "list", label: "Список", description: "Лінійний список" },
-    { id: "table", label: "Таблиця", description: "Рядки та стовпці" },
-]
-
-const VIEW_SEC = { title: "Вигляд", icon: LayoutListIcon, description: "Початковий вигляд органайзера" }
-const GENERAL_SEC = { title: "Параметри" }
-
-const TOGGLE_DEFS = [
-    { id: "organizer.auto_archive", label: "Автоархівація", description: "Автоматично архівувати завершені завдання", defaultValue: false },
-    { id: "organizer.show_completed", label: "Показувати виконані", description: "Відображати завершені завдання у списку", defaultValue: true },
-]
-
 export function OrganizerTab({ tab }: { tab: TabDef }) {
-    const { data, isLoading } = useSettingsGroup(tab.groupId ?? GROUP_ID)
-    const { mutate, isPending } = useUpdateSetting(tab.groupId ?? GROUP_ID)
+    const { data, isLoading } = useSettingsGroup(tab.groupId!)
+    const { draft, set, isDirty, isSaving, error, onSave, seed } = useSettingsDraft(tab.groupId!)
 
-    const [view, setView] = useState("kanban")
-    const [toggles, setToggles] = useState<Record<string, boolean>>(
-        Object.fromEntries(TOGGLE_DEFS.map(s => [s.id, s.defaultValue]))
-    )
-    const [isDirty, setIsDirty] = useState(false)
-
-    useEffect(() => {
-        if (!data) return
-        const get = (key: string, fb: unknown) => data.find(s => s.key === key)?.value ?? fb
-        setView(get("organizer.default_view", "kanban") as string)
-        setToggles(prev => {
-            const next = { ...prev }
-            data.forEach(s => { if (s.key in next) next[s.key] = Boolean(s.value) })
-            return next
-        })
-        setIsDirty(false)
-    }, [data])
-
-    const onSave = () => {
-        mutate({ key: "organizer.default_view", value: view })
-        Object.entries(toggles).forEach(([key, val]) => mutate({ key, value: val }))
-        setIsDirty(false)
-    }
+    useEffect(() => { if (data) seed(data) }, [data])
 
     if (isLoading) return <SettingsLoadingShell />
+    if (!data) return null
+
+    const enumSettings = data.filter(s => s.type === "enum")
+    const boolSettings = data.filter(s => s.type === "bool")
 
     return (
-        <TabShell showSave onSave={onSave} isSaving={isPending} isDirty={isDirty}>
-            <SelectorSection
-                section={VIEW_SEC}
-                options={VIEW_OPTIONS}
-                value={view as "kanban" | "list" | "table"}
-                onChange={v => { setView(v); setIsDirty(true) }}
-                variant="compact"
-            />
-            <ToggleSection
-                section={GENERAL_SEC}
-                settings={TOGGLE_DEFS}
-                values={toggles}
-                onChange={(id, v) => { setToggles(p => ({ ...p, [id]: v })); setIsDirty(true) }}
-            />
+        <TabShell showSave onSave={onSave} isSaving={isSaving} isDirty={isDirty} error={error}>
+            {enumSettings.length > 0 && (
+                <DynamicSettingsCard
+                    title="Вигляд"
+                    description="Початковий вигляд органайзера"
+                    icon={LayoutListIcon}
+                    settings={enumSettings}
+                    draft={draft}
+                    onChange={set}
+                />
+            )}
+            {boolSettings.length > 0 && (
+                <DynamicSettingsCard
+                    title="Параметри"
+                    settings={boolSettings}
+                    draft={draft}
+                    onChange={set}
+                />
+            )}
         </TabShell>
     )
 }

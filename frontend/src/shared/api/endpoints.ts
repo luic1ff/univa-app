@@ -1,4 +1,3 @@
-// ─── All API routes in one place ─────────────────────────────────────────────
 const API = "/api/v1";
 
 export const ENDPOINTS = {
@@ -10,7 +9,9 @@ export const ENDPOINTS = {
         me: `${API}/me/univa-user`,
     },
     settings: {
+        me: `${API}/me/settings`,
         group: (groupId: number) => `${API}/settings?group_id=${groupId}`,
         update: (key: string) => `${API}/settings/${encodeURIComponent(key)}`,
+        bulk: `${API}/settings`,
     },
 } as const;

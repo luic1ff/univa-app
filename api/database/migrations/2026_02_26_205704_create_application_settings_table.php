@@ -15,12 +15,8 @@ return new class extends Migration
     {
         Schema::create('application_setting_groups', function (Blueprint $table) {
             $table->id();
-
-            $table->string('code')
-                ->unique();
-
+            $table->string('code')->unique();
             $table->string('name');
-
             $table->timestamps();
             $table->softDeletes();
         });
@@ -32,14 +28,14 @@ return new class extends Migration
                 ->constrained('application_setting_groups')
                 ->restrictOnDelete();
 
-            $table->string('key')->unique(); // e.g. "appearance.theme"
-            $table->string('type');          // bool | int | string | json | enum
+            $table->string('key')->unique();
+            $table->string('type');
 
             $table->string('label');
             $table->text('description')->nullable();
+            $table->json('constraints')->nullable();
 
-            $table->json('constraints')->nullable(); // {"min":0,"max":100} / тощо
-
+            // 👇 додамо default_setting_value_id ПІСЛЯ створення values
             $table->timestamps();
             $table->softDeletes();
 
@@ -50,13 +46,24 @@ return new class extends Migration
         Schema::create('application_setting_values', function (Blueprint $table) {
             $table->id();
 
-            $table->string('value'); // e.g. "light"
-            $table->string('label'); // e.g. "Світла"
+            $table->foreignId('application_setting_id')
+                ->constrained('application_settings')
+                ->cascadeOnDelete();
+
+            $table->string('value');
+            $table->string('label');
+            $table->string('description')->nullable();
+
+            $table->integer('sort_order')->default(0);
 
             $table->json('meta')->nullable();
 
             $table->timestamps();
             $table->softDeletes();
+
+            // ✅ унікальність значення в межах одного налаштування
+            $table->unique(['application_setting_id', 'value'], 'setting_value_unique');
+            $table->index(['application_setting_id', 'sort_order'], 'setting_values_sort_idx');
         });
 
         Schema::table('application_settings', function (Blueprint $table) {
@@ -110,90 +117,7 @@ return new class extends Migration
             ['id' => 10, 'code' => 'danger_zone',           'name' => 'Небезпечна зона',  'created_at' => $now, 'updated_at' => $now],
         ]);
 
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_ENABLED_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_ENABLED_VALUE,
-            'label' => 'Увімкнено'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_DISABLED_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_DISABLED_VALUE,
-            'label' => 'Вимкнено'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_APPEARANCE_LIGHT_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_APPEARANCE_LIGHT_VALUE,
-            'label' => 'Світла'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_APPEARANCE_DARK_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_APPEARANCE_DARK_VALUE,
-            'label' => 'Темна'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_APPEARANCE_SYSTEM_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_APPEARANCE_SYSTEM_VALUE,
-            'label' => 'Системна'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_APPEARANCE_LANGUAGE_UA_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_APPEARANCE_LANGUAGE_UA_VALUE,
-            'label' => 'Українська'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_APPEARANCE_LANGUAGE_EN_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_APPEARANCE_LANGUAGE_EN_VALUE,
-            'label' => 'English'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_APPEARANCE_LANGUAGE_PL_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_APPEARANCE_LANGUAGE_PL_VALUE,
-            'label' => 'Polski'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_PRIVACY_PROFILE_PUBLIC_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_PRIVACY_PROFILE_PUBLIC_VALUE,
-            'label' => 'Публічний профіль'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_PRIVACY_PROFILE_FRIENDS_ID,
-            'value' => ApplicationSettingValue::SETTING_PRIVACY_PROFILE_FRIENDS,
-            'label' => 'Тільки друзі'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_PRIVACY_PROFILE_PRIVATE_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_PRIVACY_PROFILE_PRIVATE_VALUE,
-            'label' => 'Приватний профіль'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_DANDER_ZONE_DEACTIVATE_ACCOUNT_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_DANDER_ZONE_DEACTIVATE_ACCOUNT_VALUE,
-            'label' => 'Деактивувати акаунт'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_DANDER_ZONE_CLEAR_DATA_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_DANDER_ZONE_CLEAR_DATA_VALUE,
-            'label' => 'Очистити дані'
-        ]);
-
-        ApplicationSettingValue::insertWithId([
-            'id'    => ApplicationSettingValue::SETTING_DANDER_ZONE_DELETE_ACCOUNT_VALUE_ID,
-            'value' => ApplicationSettingValue::SETTING_DANDER_ZONE_DELETE_ACCOUNT_VALUE,
-            'label' => 'Видалити акаунт'
-        ]);
-
+        // ✅ 1) Спочатку settings (без default_setting_value_id)
         ApplicationSetting::insertWithId([
             'id' => ApplicationSetting::EMAIL_NOTIFICATION_SETTING_ID,
             'group_id' => ApplicationSettingGroup::NOTIFICATION_SETTINGS_GROUP_ID,
@@ -202,7 +126,7 @@ return new class extends Migration
             'label' => 'Email-сповіщення',
             'description' => 'Отримувати сповіщення на пошту',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_ENABLED_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -213,7 +137,7 @@ return new class extends Migration
             'label' => 'Щотижневий дайджест',
             'description' => 'Отримувати зведення активності за тиждень',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_DISABLED_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -224,7 +148,7 @@ return new class extends Migration
             'label' => 'Push-сповіщення',
             'description' => 'Отримувати push-повідомлення в браузері',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_ENABLED_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -235,7 +159,7 @@ return new class extends Migration
             'label' => 'Звук сповіщень',
             'description' => 'Програвати звук при отриманні сповіщень',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_ENABLED_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -246,7 +170,7 @@ return new class extends Migration
             'label' => 'Тема',
             'description' => 'Оберіть тему інтерфейсу',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_APPEARANCE_SYSTEM_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -257,7 +181,7 @@ return new class extends Migration
             'label' => 'Мова інтерфейсу',
             'description' => 'Оберіть мову інтерфейсу',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_APPEARANCE_LANGUAGE_UA_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -268,7 +192,7 @@ return new class extends Migration
             'label' => 'Компактний режим',
             'description' => 'Зменшити відступи та розміри елементів інтерфейсу',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_DISABLED_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -279,7 +203,7 @@ return new class extends Migration
             'label' => 'Анімації',
             'description' => 'Плавні переходи між сторінками',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_ENABLED_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -290,7 +214,7 @@ return new class extends Migration
             'label' => 'Видимість профілю',
             'description' => 'Хто може переглядати ваш профіль',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_PRIVACY_PROFILE_PUBLIC_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
 
         ApplicationSetting::insertWithId([
@@ -301,8 +225,92 @@ return new class extends Migration
             'label' => 'Показувати статус онлайн',
             'description' => 'Дозволити іншим бачити, коли ви онлайн',
             'constraints' => null,
-            'default_setting_value_id' => ApplicationSettingValue::SETTING_ENABLED_VALUE_ID,
+            'default_setting_value_id' => null,
         ]);
+
+        // ✅ 2) Тепер values з application_setting_id
+        // bool (спільні для кількох) — краще дублювати на кожен setting, бо unique(application_setting_id,value)
+        $boolSettings = [
+            ApplicationSetting::EMAIL_NOTIFICATION_SETTING_ID,
+            ApplicationSetting::WEEKLY_DIGEST_SETTING_ID,
+            ApplicationSetting::PUSH_IN_BROWSER_NOTIFICATIONS_SETTING_ID,
+            ApplicationSetting::SOUND_NOTIFICATIONS_SETTING_ID,
+            ApplicationSetting::APPEARANCE_COMPACT_MODE_SETTING_ID,
+            ApplicationSetting::APPEARANCE_ANIMATIONS_SETTING_ID,
+            ApplicationSetting::PRIVACY_ONLINE_STATUS_SETTING_ID,
+        ];
+
+        foreach ($boolSettings as $sid) {
+            ApplicationSettingValue::create([
+                'application_setting_id' => $sid,
+                'value' => '1',
+                'label' => 'Увімкнено',
+                'sort_order' => 1,
+            ]);
+
+            ApplicationSettingValue::create([
+                'application_setting_id' => $sid,
+                'value' => '0',
+                'label' => 'Вимкнено',
+                'sort_order' => 2,
+            ]);
+        }
+
+        // theme
+        $themeValues = [
+            ['value' => 'light',  'label' => 'Світла',   'sort_order' => 1],
+            ['value' => 'dark',   'label' => 'Темна',    'sort_order' => 2],
+            ['value' => 'system', 'label' => 'Системна', 'sort_order' => 3],
+        ];
+        foreach ($themeValues as $v) {
+            ApplicationSettingValue::create(['application_setting_id' => ApplicationSetting::APPEARANCE_THEME_SETTING_ID] + $v);
+        }
+
+        // language
+        $langValues = [
+            ['value' => 'ua', 'label' => 'Українська', 'sort_order' => 1],
+            ['value' => 'en', 'label' => 'English',    'sort_order' => 2],
+            ['value' => 'pl', 'label' => 'Polski',     'sort_order' => 3],
+        ];
+        foreach ($langValues as $v) {
+            ApplicationSettingValue::create(['application_setting_id' => ApplicationSetting::APPEARANCE_LANGUAGE_SETTING_ID] + $v);
+        }
+
+        // privacy_profile
+        $privacyValues = [
+            ['value' => 'profile_public',  'label' => 'Публічний профіль', 'sort_order' => 1],
+            ['value' => 'profile_friends', 'label' => 'Тільки друзі',      'sort_order' => 2],
+            ['value' => 'profile_private', 'label' => 'Приватний профіль', 'sort_order' => 3],
+        ];
+        foreach ($privacyValues as $v) {
+            ApplicationSettingValue::create(['application_setting_id' => ApplicationSetting::PRIVACY_PROFILE_SETTING_ID] + $v);
+        }
+
+        // ✅ 3) Проставляємо default_setting_value_id (знаходимо id реальних rows)
+        $setDefault = function (int $settingId, string $value) {
+            $valueRow = ApplicationSettingValue::query()
+                ->where('application_setting_id', $settingId)
+                ->where('value', $value)
+                ->first();
+
+            ApplicationSetting::query()
+                ->where('id', $settingId)
+                ->update(['default_setting_value_id' => $valueRow?->id]);
+        };
+
+        // defaults для bool
+        foreach ($boolSettings as $sid) {
+            $default = in_array($sid, [
+                ApplicationSetting::WEEKLY_DIGEST_SETTING_ID,
+                ApplicationSetting::APPEARANCE_COMPACT_MODE_SETTING_ID,
+            ], true) ? '0' : '1';
+
+            $setDefault($sid, $default);
+        }
+
+        $setDefault(ApplicationSetting::APPEARANCE_THEME_SETTING_ID, 'system');
+        $setDefault(ApplicationSetting::APPEARANCE_LANGUAGE_SETTING_ID, 'ua');
+        $setDefault(ApplicationSetting::PRIVACY_PROFILE_SETTING_ID, 'profile_public');
     }
 
     public function down(): void

@@ -1,70 +1,43 @@
-import { useState, useEffect } from "react"
-import { LockIcon, EyeIcon } from "lucide-react"
-import { TabShell, ToggleSection, SelectorSection, SettingsLoadingShell } from "../settings.renderers"
+import { useEffect } from "react"
+import { EyeIcon, LockIcon } from "lucide-react"
+import { TabShell, DynamicSettingsCard, SettingsLoadingShell } from "../settings.renderers"
 import { useSettingsGroup } from "@/entities/settings/hooks/use-settings-group"
-import { useUpdateSetting } from "@/entities/settings/hooks/use-update-setting"
+import { useSettingsDraft } from "@/entities/settings/hooks/use-settings-draft"
 import type { TabDef } from "../settings.types"
 
-const GROUP_ID = 5 // PRIVACY_SETTINGS_GROUP_ID
-
-const VIS_OPTIONS = [
-    { id: "everyone", label: "Усі" },
-    { id: "friends", label: "Друзі" },
-    { id: "nobody", label: "Ніхто" },
-]
-
-const VIS_SEC = { title: "Видимість профілю", icon: EyeIcon, description: "Хто може переглядати ваш профіль" }
-const PRIVACY_SEC = { title: "Приватність", icon: LockIcon }
-
-const TOGGLE_DEFS = [
-    { id: "privacy.show_online_status", label: "Показувати статус онлайн", description: "Дозволити іншим бачити, коли ви онлайн", defaultValue: true },
-    { id: "privacy.analytics_enabled", label: "Аналітика використання", description: "Допомогти покращити продукт анонімними даними", defaultValue: true },
-]
-
 export function PrivacyTab({ tab }: { tab: TabDef }) {
-    const { data, isLoading } = useSettingsGroup(tab.groupId ?? GROUP_ID)
-    const { mutate, isPending } = useUpdateSetting(tab.groupId ?? GROUP_ID)
-    const [visibility, setVisibility] = useState("friends")
-    const [toggles, setToggles] = useState<Record<string, boolean>>(
-        Object.fromEntries(TOGGLE_DEFS.map(s => [s.id, s.defaultValue]))
-    )
-    const [isDirty, setIsDirty] = useState(false)
+    const { data, isLoading } = useSettingsGroup(tab.groupId!)
+    const { draft, set, isDirty, isSaving, error, onSave, seed } = useSettingsDraft(tab.groupId!)
 
-    useEffect(() => {
-        if (!data) return
-        const get = (key: string, fallback: unknown) => data.find(s => s.key === key)?.value ?? fallback
-        setVisibility(get("privacy.profile_visibility", "friends") as string)
-        setToggles(prev => {
-            const next = { ...prev }
-            data.forEach(s => { if (s.key in next) next[s.key] = Boolean(s.value) })
-            return next
-        })
-        setIsDirty(false)
-    }, [data])
-
-    const onSave = () => {
-        mutate({ key: "privacy.profile_visibility", value: visibility })
-        Object.entries(toggles).forEach(([key, val]) => mutate({ key, value: val }))
-        setIsDirty(false)
-    }
+    useEffect(() => { if (data) seed(data) }, [data])
 
     if (isLoading) return <SettingsLoadingShell />
+    if (!data) return null
+
+    const visibilitySettings = data.filter(s => s.key === "privacy.profile_visibility")
+    const privacySettings = data.filter(s => s.key !== "privacy.profile_visibility")
 
     return (
-        <TabShell showSave onSave={onSave} isSaving={isPending} isDirty={isDirty}>
-            <SelectorSection
-                section={VIS_SEC}
-                options={VIS_OPTIONS}
-                value={visibility as "everyone" | "friends" | "nobody"}
-                onChange={v => { setVisibility(v); setIsDirty(true) }}
-                columns={3}
-            />
-            <ToggleSection
-                section={PRIVACY_SEC}
-                settings={TOGGLE_DEFS}
-                values={toggles}
-                onChange={(id, v) => { setToggles(p => ({ ...p, [id]: v })); setIsDirty(true) }}
-            />
+        <TabShell showSave onSave={onSave} isSaving={isSaving} isDirty={isDirty} error={error}>
+            {visibilitySettings.length > 0 && (
+                <DynamicSettingsCard
+                    title="Видимість профілю"
+                    description="Хто може переглядати ваш профіль"
+                    icon={EyeIcon}
+                    settings={visibilitySettings}
+                    draft={draft}
+                    onChange={set}
+                />
+            )}
+            {privacySettings.length > 0 && (
+                <DynamicSettingsCard
+                    title="Приватність"
+                    icon={LockIcon}
+                    settings={privacySettings}
+                    draft={draft}
+                    onChange={set}
+                />
+            )}
         </TabShell>
     )
 }

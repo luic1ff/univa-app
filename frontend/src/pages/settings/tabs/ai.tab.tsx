@@ -1,101 +1,43 @@
-import { useState, useEffect } from "react"
-import { SparklesIcon, BrainIcon, GlobeIcon } from "lucide-react"
-import { TabShell, ToggleSection, MultiSelectorSection, SettingsLoadingShell } from "../settings.renderers"
+import { useEffect } from "react"
+import { SparklesIcon, BrainIcon } from "lucide-react"
+import { TabShell, DynamicSettingsCard, SettingsLoadingShell } from "../settings.renderers"
 import { useSettingsGroup } from "@/entities/settings/hooks/use-settings-group"
-import { useUpdateSetting } from "@/entities/settings/hooks/use-update-setting"
+import { useSettingsDraft } from "@/entities/settings/hooks/use-settings-draft"
 import type { TabDef } from "../settings.types"
 
-const GROUP_ID = 6 // AI_SETTINGS_GROUP_ID
-
-const AI_SEC = { title: "AI-помічник", icon: SparklesIcon, description: "Вибір моделі та стилю відповідей" }
-const IFACE_SEC = { title: "Поведінка", icon: BrainIcon }
-
-const SELECTOR_GROUPS = [
-    {
-        id: "ai.model", label: "Модель AI",
-        options: [
-            { id: "fast", label: "Швидка", description: "Швидкі відповіді" },
-            { id: "balanced", label: "Збалансована", description: "Оптимальний вибір" },
-            { id: "advanced", label: "Розширена", description: "Максимальна точність" },
-        ],
-        columns: 3 as const, variant: "compact" as const,
-    },
-    {
-        id: "ai.creativity", label: "Творчість",
-        options: [
-            { id: "low", label: "Низька", description: "Точні та чіткі відповіді" },
-            { id: "medium", label: "Середня", description: "Збалансований підхід" },
-            { id: "high", label: "Висока", description: "Творчі & нестандартні" },
-        ],
-        columns: 3 as const, variant: "compact" as const,
-    },
-    {
-        id: "ai.language", label: "Мова відповідей",
-        options: [
-            { id: "auto", label: "Автоматично" },
-            { id: "uk", label: "Українська" },
-            { id: "en", label: "English" },
-        ],
-        columns: 3 as const, variant: "compact" as const,
-    },
-]
-
-const TOGGLE_DEFS = [
-    { id: "ai.context_memory", label: "Пам'ять контексту", description: "AI запам'ятовує попередні повідомлення", defaultValue: true },
-    { id: "ai.auto_suggestions", label: "Авто-підказки", description: "Показувати підказки при написанні", defaultValue: true },
-]
-
 export function AITab({ tab }: { tab: TabDef }) {
-    const { data, isLoading } = useSettingsGroup(tab.groupId ?? GROUP_ID)
-    const { mutate, isPending } = useUpdateSetting(tab.groupId ?? GROUP_ID)
+    const { data, isLoading } = useSettingsGroup(tab.groupId!)
+    const { draft, set, isDirty, isSaving, error, onSave, seed } = useSettingsDraft(tab.groupId!)
 
-    const [selectors, setSelectors] = useState<Record<string, string>>({
-        "ai.model": "balanced",
-        "ai.creativity": "medium",
-        "ai.language": "auto",
-    })
-    const [toggles, setToggles] = useState<Record<string, boolean>>(
-        Object.fromEntries(TOGGLE_DEFS.map(s => [s.id, s.defaultValue]))
-    )
-    const [isDirty, setIsDirty] = useState(false)
-
-    useEffect(() => {
-        if (!data) return
-        setSelectors(prev => {
-            const next = { ...prev }
-            data.forEach(s => { if (s.key in next) next[s.key] = String(s.value ?? next[s.key]) })
-            return next
-        })
-        setToggles(prev => {
-            const next = { ...prev }
-            data.forEach(s => { if (s.key in next) next[s.key] = Boolean(s.value) })
-            return next
-        })
-        setIsDirty(false)
-    }, [data])
-
-    const onSave = () => {
-        Object.entries(selectors).forEach(([key, val]) => mutate({ key, value: val }))
-        Object.entries(toggles).forEach(([key, val]) => mutate({ key, value: val }))
-        setIsDirty(false)
-    }
+    useEffect(() => { if (data) seed(data) }, [data])
 
     if (isLoading) return <SettingsLoadingShell />
+    if (!data) return null
+
+    const enumSettings = data.filter(s => s.type === "enum")
+    const boolSettings = data.filter(s => s.type === "bool")
 
     return (
-        <TabShell showSave onSave={onSave} isSaving={isPending} isDirty={isDirty}>
-            <MultiSelectorSection
-                section={AI_SEC}
-                groups={SELECTOR_GROUPS}
-                values={selectors}
-                onChange={(id, v) => { setSelectors(p => ({ ...p, [id]: v })); setIsDirty(true) }}
-            />
-            <ToggleSection
-                section={IFACE_SEC}
-                settings={TOGGLE_DEFS}
-                values={toggles}
-                onChange={(id, v) => { setToggles(p => ({ ...p, [id]: v })); setIsDirty(true) }}
-            />
+        <TabShell showSave onSave={onSave} isSaving={isSaving} isDirty={isDirty} error={error}>
+            {enumSettings.length > 0 && (
+                <DynamicSettingsCard
+                    title="AI-помічник"
+                    description="Вибір моделі та стилю відповідей"
+                    icon={SparklesIcon}
+                    settings={enumSettings}
+                    draft={draft}
+                    onChange={set}
+                />
+            )}
+            {boolSettings.length > 0 && (
+                <DynamicSettingsCard
+                    title="Поведінка"
+                    icon={BrainIcon}
+                    settings={boolSettings}
+                    draft={draft}
+                    onChange={set}
+                />
+            )}
         </TabShell>
     )
 }

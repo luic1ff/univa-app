@@ -2,9 +2,36 @@ import { motion } from "framer-motion"
 import { Button } from "@/shared/shadcn/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/shadcn/ui/card"
 import { Separator } from "@/shared/shadcn/ui/separator"
+import { Trash2Icon } from "lucide-react"
 import { itemAnim, containerAnim } from "../settings.animations"
-import { dangerSection, dangerActions } from "../config/danger.config"
 import type { TabDef } from "../settings.types"
+
+const dangerSection = {
+    title: "Небезпечна зона",
+    icon: Trash2Icon,
+    description: "Ці дії є незворотними. Будьте уважні.",
+}
+
+const dangerActions = [
+    {
+        id: "exportData",
+        label: "Експортувати мої дані",
+        description: "Завантажити архів усіх ваших даних",
+        buttonLabel: "Експортувати",
+        variant: "outline" as const,
+        destructive: false,
+        highlight: false,
+    },
+    {
+        id: "deleteAccount",
+        label: "Видалити акаунт",
+        description: "Назавжди видалити акаунт та всі дані",
+        buttonLabel: "Видалити акаунт",
+        variant: "destructive" as const,
+        destructive: true,
+        highlight: true,
+    },
+]
 
 export function DangerTab({ tab: _tab }: { tab: TabDef }) {
     return (

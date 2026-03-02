@@ -10,9 +10,8 @@ import {
 } from "@/shared/shadcn/ui/field"
 import { Input } from "@/shared/shadcn/ui/input"
 import { Link } from "react-router-dom"
-import { Mail, Lock, Eye, EyeOff, User, Phone, Globe, Users, Hash, GraduationCap, School, Image as ImageIcon } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, User, Hash, } from "lucide-react"
 import React, { useMemo, useState } from "react"
-import { AvatarPicker } from "@/shared/ui/components/avatar-picker"
 
 /** ===== Types ===== */
 
@@ -25,22 +24,6 @@ export interface RegisterFormData {
     // Акаунт
     username: string
     email: string
-    phone: string
-
-    // Навчання (опційно)
-    university: string
-    faculty: string
-    specialty: string
-    group: string
-    course: string
-
-    // Налаштування (опційно)
-    language: "uk" | "en"
-    timezone: string
-
-    // Додатково
-    referral_code: string
-    avatar: File | null
 
     // Безпека
     password: string
@@ -62,10 +45,10 @@ interface RegisterFormProps {
     errors?: Record<string, string>
 }
 
-type FieldType = "text" | "email" | "password" | "tel" | "file" | "select" | "checkbox"
+type FieldType = "text" | "email" | "password" | "checkbox"
 
 type FieldDef = {
-    section: "Персональні дані" | "Дані акаунта" | "Навчання" | "Безпека" | "Підтвердження"
+    section: "Персональні дані" | "Дані акаунта" | "Безпека" | "Підтвердження"
     name: RegisterFieldName
     label: string
     type: FieldType
@@ -125,17 +108,6 @@ const FIELDS: FieldDef[] = [
         icon: <User className="w-4 h-4" />,
         colSpan: 1,
     },
-    {
-        section: "Персональні дані",
-        name: "middle_name",
-        label: "По-батькові",
-        type: "text",
-        placeholder: "Григорович",
-        autoComplete: "additional-name",
-        required: false,
-        icon: <User className="w-4 h-4" />,
-        colSpan: 2,
-    },
 
     // Акаунт
     {
@@ -160,106 +132,6 @@ const FIELDS: FieldDef[] = [
         required: true,
         icon: <Mail className="w-4 h-4" />,
         colSpan: 1,
-    },
-    {
-        section: "Дані акаунта",
-        name: "phone",
-        label: "Телефон",
-        type: "tel",
-        placeholder: "+380…",
-        autoComplete: "tel",
-        required: false,
-        icon: <Phone className="w-4 h-4" />,
-        colSpan: 2,
-        helper: "Опційно — для відновлення доступу/підтвердження.",
-    },
-    {
-        section: "Дані акаунта",
-        name: "avatar",
-        label: "Аватар",
-        type: "file",
-        required: false,
-        icon: <ImageIcon className="w-4 h-4" />,
-        colSpan: 2,
-        helper: "PNG/JPG/WebP, бажано до 2–5 МБ.",
-    },
-
-    // Навчання
-    {
-        section: "Навчання",
-        name: "university",
-        label: "Навчальний заклад",
-        type: "text",
-        placeholder: "Коледж / Університет",
-        required: false,
-        icon: <School className="w-4 h-4" />,
-        colSpan: 2,
-    },
-    {
-        section: "Навчання",
-        name: "faculty",
-        label: "Факультет / Відділення",
-        type: "text",
-        placeholder: "Напр., Економічний",
-        required: false,
-        icon: <GraduationCap className="w-4 h-4" />,
-        colSpan: 1,
-    },
-    {
-        section: "Навчання",
-        name: "specialty",
-        label: "Спеціальність",
-        type: "text",
-        placeholder: "Напр., Менеджмент",
-        required: false,
-        icon: <GraduationCap className="w-4 h-4" />,
-        colSpan: 1,
-    },
-    {
-        section: "Навчання",
-        name: "group",
-        label: "Група",
-        type: "text",
-        placeholder: "МТ23",
-        required: false,
-        icon: <Users className="w-4 h-4" />,
-        colSpan: 1,
-    },
-    {
-        section: "Навчання",
-        name: "course",
-        label: "Курс",
-        type: "text",
-        placeholder: "1–6",
-        required: false,
-        icon: <Users className="w-4 h-4" />,
-        colSpan: 1,
-    },
-
-    // Налаштування
-    {
-        section: "Навчання",
-        name: "language",
-        label: "Мова",
-        type: "select",
-        required: false,
-        icon: <Globe className="w-4 h-4" />,
-        colSpan: 1,
-        options: [
-            { value: "uk", label: "Українська" },
-            { value: "en", label: "English" },
-        ],
-    },
-    {
-        section: "Навчання",
-        name: "timezone",
-        label: "Часовий пояс",
-        type: "text",
-        required: false,
-        icon: <Globe className="w-4 h-4" />,
-        colSpan: 1,
-        placeholder: "Europe/Zaporozhye",
-        helper: "Можна лишити за замовчуванням.",
     },
 
     // Безпека
@@ -309,7 +181,6 @@ const FIELDS: FieldDef[] = [
 const SECTIONS: FieldDef["section"][] = [
     "Персональні дані",
     "Дані акаунта",
-    "Навчання",
     "Безпека",
     "Підтвердження",
 ]
@@ -365,70 +236,6 @@ export function RegisterForm({
                             {err && <FieldError className="text-xs">{err}</FieldError>}
                         </div>
                     </label>
-                </Field>
-            )
-        }
-
-        // File
-        if (f.type === "file") {
-            const value = (form[f.name] as unknown as File | null) ?? null
-
-            return (
-                <Field
-                    key={String(f.name)}
-                    data-invalid={invalid || undefined}
-                    className={cn(f.colSpan === 2 ? "md:col-span-2" : "")}
-                >
-                    <FieldLabel className="text-sm font-medium">
-                        {f.label}
-                        {!f.required && " (опційно)"}
-                    </FieldLabel>
-
-                    <AvatarPicker
-                        value={value}
-                        onChange={(file) => onFieldChange(f.name, file as any)}
-                        helper={f.helper}
-                        error={err}
-                        maxSizeMb={5}
-                    />
-                </Field>
-            )
-        }
-
-        // Select
-        if (f.type === "select") {
-            const value = String(form[f.name] ?? "")
-
-            return (
-                <Field
-                    key={String(f.name)}
-                    data-invalid={invalid || undefined}
-                    className={cn(f.colSpan === 2 ? "md:col-span-2" : "")}
-                >
-                    <FieldLabel className="text-sm font-medium">{f.label}{!f.required && " (опційно)"}</FieldLabel>
-                    <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                            {f.icon}
-                        </div>
-                        <select
-                            className={cn(
-                                "h-11 w-full rounded-md border border-input bg-background px-3 pl-10 text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20",
-                                invalid && "border-destructive focus:ring-destructive/20"
-                            )}
-                            value={value}
-                            onChange={(e) => onFieldChange(f.name, e.target.value as any)}
-                            required={!!f.required}
-                            aria-invalid={invalid}
-                        >
-                            {(f.options ?? []).map((o) => (
-                                <option key={o.value} value={o.value}>
-                                    {o.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    {f.helper && <FieldDescription className="text-xs">{f.helper}</FieldDescription>}
-                    {err && <FieldError className="text-xs mt-1">{err}</FieldError>}
                 </Field>
             )
         }
@@ -563,27 +370,3 @@ export function RegisterForm({
         </div>
     )
 }
-
-/** ===== Optional: starter initial state =====
- export const registerInitialState: RegisterFormData = {
- last_name: "",
- first_name: "",
- middle_name: "",
- username: "",
- email: "",
- phone: "",
- university: "",
- faculty: "",
- specialty: "",
- group: "",
- course: "",
- language: "uk",
- timezone: "Europe/Zaporozhye",
- referral_code: "",
- avatar: null,
- password: "",
- password_confirmation: "",
- agree_terms: false,
- marketing_opt_in: false,
- }
- */

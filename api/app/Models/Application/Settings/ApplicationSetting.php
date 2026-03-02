@@ -54,7 +54,9 @@ class ApplicationSetting extends Model
 
     public function values(): HasMany
     {
-        return $this->hasMany(ApplicationSettingValue::class, 'application_setting_id');
+        return $this->hasMany(ApplicationSettingValue::class, 'application_setting_id')
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 
     public function defaultValue(): BelongsTo

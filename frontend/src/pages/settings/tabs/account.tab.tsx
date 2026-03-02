@@ -4,9 +4,24 @@ import { Input } from "@/shared/shadcn/ui/input"
 import { Button } from "@/shared/shadcn/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/shadcn/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/shadcn/ui/avatar"
-import { CameraIcon } from "lucide-react"
+import { CameraIcon, UserIcon, GraduationCapIcon } from "lucide-react"
 import { itemAnim, containerAnim } from "../settings.animations"
-import { profileSection, educationSection, profileFields, educationFields } from "../config/account.config"
+
+const profileSection = { title: "Особисті дані", icon: UserIcon }
+const educationSection = { title: "Освіта", icon: GraduationCapIcon }
+interface FieldDef { id: string; label: string; placeholder: string; type?: string }
+const profileFields: FieldDef[] = [
+    { id: "first_name", label: "Ім'я", placeholder: "Іван" },
+    { id: "last_name", label: "Прізвище", placeholder: "Петренко" },
+    { id: "username", label: "Нікнейм", placeholder: "@nickname" },
+    { id: "email", label: "Email", placeholder: "ivan@example.com", type: "email" },
+]
+const educationFields: FieldDef[] = [
+    { id: "university", label: "Університет", placeholder: "КПІ" },
+    { id: "faculty", label: "Факультет", placeholder: "ФІОТ" },
+    { id: "year", label: "Рік навчання", placeholder: "3" },
+    { id: "group", label: "Група", placeholder: "ІО-31" },
+]
 
 export function AccountTab() {
     const [form, setForm] = useState<Record<string, string>>({})

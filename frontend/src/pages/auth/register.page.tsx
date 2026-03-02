@@ -25,22 +25,6 @@ export function RegisterPage() {
         // Акаунт
         username: "",
         email: "",
-        phone: "",
-
-        // Навчання (опційно)
-        university: "",
-        faculty: "",
-        specialty: "",
-        group: "",
-        course: "",
-
-        // Налаштування (опційно)
-        language: "uk",
-        timezone: "Europe/Zaporozhye",
-
-        // Додатково
-        referral_code: "",
-        avatar: null,
 
         // Безпека
         password: "",

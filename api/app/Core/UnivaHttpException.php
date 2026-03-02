@@ -11,7 +11,7 @@ class UnivaHttpException extends Exception
 {
     public function __construct(
         string $message = '',
-        protected ResponseState $state = ResponseState::Warning,
+        protected ResponseState $state = ResponseState::Error,
         protected mixed $errors = null
     ) {
         parent::__construct($message);

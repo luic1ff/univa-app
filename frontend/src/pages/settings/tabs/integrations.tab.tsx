@@ -6,8 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/shadcn/ui/car
 import { Separator } from "@/shared/shadcn/ui/separator"
 import { UnplugIcon } from "lucide-react"
 import { itemAnim, containerAnim } from "../settings.animations"
-import { integrations as defaultIntegrations } from "../config/integrations.config"
 import type { TabDef } from "../settings.types"
+
+const defaultIntegrations = [
+    { name: "Google Calendar", icon: "📅", description: "Синхронізація подій та розкладу", connected: false, status: "" },
+    { name: "Telegram", icon: "✈️", description: "Сповіщення через Telegram-бот", connected: false, status: "" },
+    { name: "Notion", icon: "📝", description: "Імпорт нотаток та задач", connected: false, status: "" },
+]
 
 export function IntegrationsTab({ tab: _tab }: { tab: TabDef }) {
     const [items, setItems] = useState(defaultIntegrations)

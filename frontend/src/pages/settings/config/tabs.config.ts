@@ -16,18 +16,18 @@ import type { TabDef } from "../settings.types"
 
 // Group IDs mirror ApplicationSettingGroup PHP constants
 export const SETTING_GROUP = {
-    USER: 1,
-    SECURITY: 2,
-    NOTIFICATION: 3,
-    APPEARANCE: 4,
-    PRIVACY: 5,
-    AI: 6,
-    SCHEDULER: 7,
-    CHAT: 8,
-    FILE: 9,
-    ORGANIZER: 10,
-    INTEGRATION: 11,
-    DANGER_ZONE: 12,
+    USER: 1001,
+    SECURITY: 1002,
+    NOTIFICATION: 1,
+    APPEARANCE: 2,
+    PRIVACY: 3,
+    AI: 4,
+    SCHEDULER: 5,
+    CHAT: 6,
+    FILE: 7,
+    ORGANIZER: 8,
+    INTEGRATION: 9,
+    DANGER_ZONE: 10,
 } as const;
 
 export const tabs: TabDef[] = [

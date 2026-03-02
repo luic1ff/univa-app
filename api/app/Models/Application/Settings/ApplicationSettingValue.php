@@ -11,9 +11,11 @@ class ApplicationSettingValue extends Model
     use HasInsertWithId, SoftDeletes;
 
     protected $fillable = [
+        'application_setting_id',
         'value',
         'label',
         'meta',
+        'sort_order',
     ];
 
     protected $casts = [

@@ -18,12 +18,14 @@ Route::group(['middleware' => ['auth:sanctum', 'throttle:api', 'web'], 'prefix' 
     Route::post('/logout', [LogoutController::class, 'store']);
 
     Route::get('/settings', [SettingsController::class, 'index']);
-    Route::patch('/settings/{key}', [SettingsController::class, 'update'])->where('key', '.+');
+    Route::patch('/settings', [SettingsController::class, 'bulkUpdate']);
+    Route::patch('/settings/{key}', [SettingsController::class, 'update'])
+        ->where('key', '.+');
+});
 
-    Route::group(['prefix' => '/v1', 'middleware' => ['web']], function () {
-        Route::get('/health', [HealthController::class, 'health']);
+Route::group(['prefix' => '/v1', 'middleware' => ['web']], function () {
+    Route::get('/health', [HealthController::class, 'health']);
 
-        Route::post('/register', [RegisterController::class, 'store']);
-        Route::post('/login', [LoginController::class, 'store']);
-    });
+    Route::post('/register', [RegisterController::class, 'store']);
+    Route::post('/login', [LoginController::class, 'store']);
 });

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchSettingsGroup, type SettingItem } from "@/entities/settings/api/settings.api";
+import { fetchSettingsGroup, getSelectedValue, type SettingItem } from "@/entities/settings/api/settings.api";
 import { useAuth } from "@/app/providers/auth-provider";
 
 /**
@@ -27,19 +27,20 @@ export function useSettingsGroup(groupId: number) {
 }
 
 /**
- * Convenience: find a single setting value from a group response.
+ * Convenience: find a single setting's current string value from a group response.
  *
  * Usage:
  * ```tsx
  * const theme = useSettingValue(data, "appearance.theme", "system")
  * ```
  */
-export function useSettingValue<T = unknown>(
+export function useSettingValue(
     settings: SettingItem[] | undefined,
     key: string,
-    defaultValue: T,
-): T {
+    defaultValue: string,
+): string {
     if (!settings) return defaultValue;
     const item = settings.find((s) => s.key === key);
-    return item !== undefined ? (item.value as T) : defaultValue;
+    if (!item) return defaultValue;
+    return getSelectedValue(item) || defaultValue;
 }
