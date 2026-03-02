@@ -17,12 +17,30 @@ export function RegisterPage() {
     const { toast } = useToast();
 
     const [form, setForm] = useState<RegisterFormData>({
-        first_name: "",
+        // Персональні
         last_name: "",
+        first_name: "",
+        middle_name: "",
 
         // Акаунт
         username: "",
         email: "",
+        phone: "",
+
+        // Навчання (опційно)
+        university: "",
+        faculty: "",
+        specialty: "",
+        group: "",
+        course: "",
+
+        // Налаштування (опційно)
+        language: "uk",
+        timezone: "Europe/Zaporozhye",
+
+        // Додатково
+        referral_code: "",
+        avatar: null,
 
         // Безпека
         password: "",

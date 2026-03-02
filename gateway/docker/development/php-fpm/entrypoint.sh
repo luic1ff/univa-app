@@ -1,100 +1,71 @@
 #!/bin/sh
 # gateway/docker/development/php-fpm/entrypoint.sh
-# Запускается перед php-fpm при каждом старте контейнера.
-# set -e: выход при любой ошибке (кроме команд с || true)
+
+# set -e: выход при любой ошибке
 set -e
 
 APP_DIR="/var/www/app"
 
 echo "🚀 PHP-FPM entrypoint starting..."
 
-# ── 1. Проверяем что APP_DIR примонтирован и содержит Laravel ────────────────
+# 1. Если переданы аргументы (например, docker exec ... artisan), выполняем их от www-data
+if [ "$#" -gt 0 ]; then
+    echo "⚙️ Executing custom command: $@"
+    exec su-exec www-data "$@"
+fi
+
+# 2. Проверяем наличие artisan
 if [ ! -f "${APP_DIR}/artisan" ]; then
-    echo "❌ ${APP_DIR}/artisan not found!"
-    echo "   Проверь APP_PATH в gateway/.env — он должен указывать на папку api/"
-    echo "   Текущее содержимое ${APP_DIR}:"
-    ls -la "${APP_DIR}" 2>/dev/null || echo "   (пустая папка)"
+    echo "❌ ${APP_DIR}/artisan not found! Check your volume mounts."
     exit 1
 fi
 
-# ── 2. .env check ────────────────────────────────────────────────────────────
+# 3. Обработка .env (необходима для работы artisan и тестов в CI)
 if [ ! -f "${APP_DIR}/.env" ]; then
-    echo "⚠️  No .env found, copying from .env.example..."
     if [ -f "${APP_DIR}/.env.example" ]; then
+        echo "⚠️ No .env found, copying from .env.example..."
         cp "${APP_DIR}/.env.example" "${APP_DIR}/.env"
-        echo "✅ .env created from .env.example"
+        # Убеждаемся, что у www-data будет доступ к новому файлу
+        chown www-data:www-data "${APP_DIR}/.env"
     else
-        echo "❌ Neither .env nor .env.example found in ${APP_DIR}!"
+        echo "❌ Neither .env nor .env.example found!"
         exit 1
     fi
 fi
 
-# ── 3. Composer install ──────────────────────────────────────────────────────
-if [ ! -f "${APP_DIR}/vendor/autoload.php" ]; then
-    echo "📦 Running composer install..."
-    composer install \
-        --working-dir="${APP_DIR}" \
-        --no-interaction \
-        --no-progress \
-        --prefer-dist \
-        --optimize-autoloader
-    echo "✅ Composer install done"
-else
-    echo "✅ vendor/ exists, skipping composer install"
-fi
-
-# ── 4. APP_KEY generate ──────────────────────────────────────────────────────
+# 4. Проверка и генерация APP_KEY (решает проблему MissingAppKeyException)
 APP_KEY=$(grep "^APP_KEY=" "${APP_DIR}/.env" | cut -d'=' -f2)
-if [ -z "${APP_KEY}" ]; then
+if [ -z "${APP_KEY}" ] || [ "${APP_KEY}" = "null" ]; then
     echo "🔑 Generating APP_KEY..."
     php "${APP_DIR}/artisan" key:generate --force
-    echo "✅ APP_KEY generated"
 else
-    echo "✅ APP_KEY already set"
+    echo "✅ APP_KEY is already set."
 fi
 
-# ── 5. Storage permissions ────────────────────────────────────────────────────
-# На Windows + Docker Desktop chmod может не работать для bind-mount томов,
-# поэтому используем || true чтобы не падать при ошибке прав
-echo "📁 Setting storage permissions..."
-mkdir -p \
-    "${APP_DIR}/storage/app/public" \
-    "${APP_DIR}/storage/framework/cache/data" \
-    "${APP_DIR}/storage/framework/sessions" \
-    "${APP_DIR}/storage/framework/testing" \
-    "${APP_DIR}/storage/framework/views" \
-    "${APP_DIR}/storage/logs" \
-    "${APP_DIR}/bootstrap/cache" || true
+# 5. Composer install (только если нет папки vendor)
+if [ ! -d "${APP_DIR}/vendor" ]; then
+    echo "📦 Running composer install..."
+    composer install --working-dir="${APP_DIR}" --no-interaction --no-progress --prefer-dist --optimize-autoloader
+fi
+
+# 6. Права доступа (chown для bind-mounts и создание нужных директорий)
+echo "📁 Preparing storage and permissions..."
+mkdir -p "${APP_DIR}/storage/framework/sessions" \
+         "${APP_DIR}/storage/framework/views" \
+         "${APP_DIR}/storage/framework/cache/data" \
+         "${APP_DIR}/storage/logs" \
+         "${APP_DIR}/bootstrap/cache"
+
+# Исправляем владельца для работы внутри контейнера
+chown -R www-data:www-data "${APP_DIR}/storage" "${APP_DIR}/bootstrap/cache" 2>/dev/null || true
 chmod -R 775 "${APP_DIR}/storage" "${APP_DIR}/bootstrap/cache" 2>/dev/null || true
-echo "✅ Permissions done (errors ignored on Windows volumes)"
 
-# ── 6. Cache clear (dev) ──────────────────────────────────────────────────────
-php "${APP_DIR}/artisan" config:clear  --quiet || true
-php "${APP_DIR}/artisan" route:clear   --quiet || true
-php "${APP_DIR}/artisan" view:clear    --quiet || true
-
-# ── 7. Migrate (автоматически в dev) ─────────────────────────────────────────
-echo "🗄️  Running migrations..."
+# 7. База данных: Ожидание и миграции
+echo "🗄️ Running migrations..."
+# --force обязателен для работы в CI/production режимах
 php "${APP_DIR}/artisan" migrate --force --no-interaction
-echo "✅ Migrations done"
 
+# 8. Финальный запуск php-fpm
 echo "🎉 Setup complete! Starting php-fpm..."
-# PHP-FPM мастер-процесс работает от root (читает /proc/self/fd/2, конфиги).
-# Воркеры сами дропают привилегии до www-data через www.conf (user = www-data).
-# su-exec здесь ломает доступ к stderr → Permission denied на /proc/self/fd/2.
-# docker/development/php-fpm/entrypoint.sh
-# Запускается при старте php-fpm контейнера (от root).
-# Использует su-exec для выполнения php-fpm от www-data.
-
-set -e
-
-# Фиксируем права на рабочую директорию (на случай bind-mount)
-chown -R www-data:www-data /var/www/app 2>/dev/null || true
-
-# Если переданы аргументы — выполняем их (docker exec artisan ...)
-if [ "$#" -gt 0 ]; then
-    exec su-exec www-data "$@"
-fi
-
-# По умолчанию — запуск php-fpm
+# Запускаем мастер-процесс от root, он сам сбросит права воркеров до www-data согласно www.conf
 exec php-fpm

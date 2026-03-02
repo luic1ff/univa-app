@@ -1,26 +1,55 @@
-import {cn} from "@/shared/shadcn/lib/utils"
-import {Button} from "@/shared/shadcn/ui/button"
-import {Card, CardContent} from "@/shared/shadcn/ui/card"
-import {Field, FieldDescription, FieldError, FieldGroup, FieldLabel,} from "@/shared/shadcn/ui/field"
-import {Input} from "@/shared/shadcn/ui/input"
-import {Link} from "react-router-dom"
-import {Eye, EyeOff, Hash, Lock, Mail, User} from "lucide-react"
-import type React from "react"
-import {useMemo, useState} from "react"
+import { cn } from "@/shared/shadcn/lib/utils"
+import { Button } from "@/shared/shadcn/ui/button"
+import { Card, CardContent } from "@/shared/shadcn/ui/card"
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from "@/shared/shadcn/ui/field"
+import { Input } from "@/shared/shadcn/ui/input"
+import { Link } from "react-router-dom"
+import { Mail, Lock, Eye, EyeOff, User, Phone, Globe, Users, Hash, GraduationCap, School, Image as ImageIcon } from "lucide-react"
+import React, { useMemo, useState } from "react"
+import { AvatarPicker } from "@/shared/ui/components/avatar-picker"
 
-export type RegisterFormData = {
-    first_name: string;
-    last_name: string;
+/** ===== Types ===== */
 
-    username: string;
-    email: string;
+export interface RegisterFormData {
+    // Персональні
+    last_name: string
+    first_name: string
+    middle_name: string
 
-    password: string;
-    password_confirmation: string;
+    // Акаунт
+    username: string
+    email: string
+    phone: string
 
-    agree_terms: boolean;
-    marketing_opt_in: boolean;
-};
+    // Навчання (опційно)
+    university: string
+    faculty: string
+    specialty: string
+    group: string
+    course: string
+
+    // Налаштування (опційно)
+    language: "uk" | "en"
+    timezone: string
+
+    // Додатково
+    referral_code: string
+    avatar: File | null
+
+    // Безпека
+    password: string
+    password_confirmation: string
+
+    // Згоди
+    agree_terms: boolean
+    marketing_opt_in: boolean
+}
 
 type RegisterFieldName = keyof RegisterFormData
 
@@ -33,10 +62,10 @@ interface RegisterFormProps {
     errors?: Record<string, string>
 }
 
-type FieldType = "text" | "email" | "password" | "select" | "checkbox"
+type FieldType = "text" | "email" | "password" | "tel" | "file" | "select" | "checkbox"
 
 type FieldDef = {
-    section: "Персональні дані" | "Дані акаунта" | "Безпека" | "Підтвердження"
+    section: "Персональні дані" | "Дані акаунта" | "Навчання" | "Безпека" | "Підтвердження"
     name: RegisterFieldName
     label: string
     type: FieldType
@@ -58,7 +87,7 @@ function passwordScore(p: string) {
     if (/[A-ZА-ЯЇІЄ]/.test(p)) score += 1
     if (/[a-zа-яїіє]/.test(p)) score += 1
     if (/\d/.test(p)) score += 1
-    if (/[^A-Za-zА-яЇІЄїіє0-9]/.test(p)) score += 1
+    if (/[^A-Za-zА-Яа-яЇІЄїіє0-9]/.test(p)) score += 1
     return Math.min(score, 5)
 }
 
@@ -70,7 +99,21 @@ function scoreLabel(score: number) {
     return "Слабкий"
 }
 
+/** ===== Fields config ===== */
+
 const FIELDS: FieldDef[] = [
+    // Персональні
+    {
+        section: "Персональні дані",
+        name: "last_name",
+        label: "Прізвище",
+        type: "text",
+        placeholder: "Шевченко",
+        autoComplete: "family-name",
+        required: true,
+        icon: <User className="w-4 h-4" />,
+        colSpan: 1,
+    },
     {
         section: "Персональні дані",
         name: "first_name",
@@ -79,19 +122,19 @@ const FIELDS: FieldDef[] = [
         placeholder: "Тарас",
         autoComplete: "given-name",
         required: true,
-        icon: <User className="w-4 h-4"/>,
+        icon: <User className="w-4 h-4" />,
         colSpan: 1,
     },
     {
         section: "Персональні дані",
-        name: "last_name",
-        label: "Прізвище",
+        name: "middle_name",
+        label: "По-батькові",
         type: "text",
-        placeholder: "Шевченко",
+        placeholder: "Григорович",
         autoComplete: "additional-name",
-        required: true,
-        icon: <User className="w-4 h-4"/>,
-        colSpan: 1,
+        required: false,
+        icon: <User className="w-4 h-4" />,
+        colSpan: 2,
     },
 
     // Акаунт
@@ -103,7 +146,7 @@ const FIELDS: FieldDef[] = [
         placeholder: "univa_user",
         autoComplete: "username",
         required: true,
-        icon: <Hash className="w-4 h-4"/>,
+        icon: <Hash className="w-4 h-4" />,
         colSpan: 1,
         helper: "Лише для входу/профілю (не обов’язково email).",
     },
@@ -115,9 +158,110 @@ const FIELDS: FieldDef[] = [
         placeholder: "you@example.com",
         autoComplete: "email",
         required: true,
-        icon: <Mail className="w-4 h-4"/>,
+        icon: <Mail className="w-4 h-4" />,
         colSpan: 1,
     },
+    {
+        section: "Дані акаунта",
+        name: "phone",
+        label: "Телефон",
+        type: "tel",
+        placeholder: "+380…",
+        autoComplete: "tel",
+        required: false,
+        icon: <Phone className="w-4 h-4" />,
+        colSpan: 2,
+        helper: "Опційно — для відновлення доступу/підтвердження.",
+    },
+    {
+        section: "Дані акаунта",
+        name: "avatar",
+        label: "Аватар",
+        type: "file",
+        required: false,
+        icon: <ImageIcon className="w-4 h-4" />,
+        colSpan: 2,
+        helper: "PNG/JPG/WebP, бажано до 2–5 МБ.",
+    },
+
+    // Навчання
+    {
+        section: "Навчання",
+        name: "university",
+        label: "Навчальний заклад",
+        type: "text",
+        placeholder: "Коледж / Університет",
+        required: false,
+        icon: <School className="w-4 h-4" />,
+        colSpan: 2,
+    },
+    {
+        section: "Навчання",
+        name: "faculty",
+        label: "Факультет / Відділення",
+        type: "text",
+        placeholder: "Напр., Економічний",
+        required: false,
+        icon: <GraduationCap className="w-4 h-4" />,
+        colSpan: 1,
+    },
+    {
+        section: "Навчання",
+        name: "specialty",
+        label: "Спеціальність",
+        type: "text",
+        placeholder: "Напр., Менеджмент",
+        required: false,
+        icon: <GraduationCap className="w-4 h-4" />,
+        colSpan: 1,
+    },
+    {
+        section: "Навчання",
+        name: "group",
+        label: "Група",
+        type: "text",
+        placeholder: "МТ23",
+        required: false,
+        icon: <Users className="w-4 h-4" />,
+        colSpan: 1,
+    },
+    {
+        section: "Навчання",
+        name: "course",
+        label: "Курс",
+        type: "text",
+        placeholder: "1–6",
+        required: false,
+        icon: <Users className="w-4 h-4" />,
+        colSpan: 1,
+    },
+
+    // Налаштування
+    {
+        section: "Навчання",
+        name: "language",
+        label: "Мова",
+        type: "select",
+        required: false,
+        icon: <Globe className="w-4 h-4" />,
+        colSpan: 1,
+        options: [
+            { value: "uk", label: "Українська" },
+            { value: "en", label: "English" },
+        ],
+    },
+    {
+        section: "Навчання",
+        name: "timezone",
+        label: "Часовий пояс",
+        type: "text",
+        required: false,
+        icon: <Globe className="w-4 h-4" />,
+        colSpan: 1,
+        placeholder: "Europe/Zaporozhye",
+        helper: "Можна лишити за замовчуванням.",
+    },
+
     // Безпека
     {
         section: "Безпека",
@@ -127,7 +271,7 @@ const FIELDS: FieldDef[] = [
         placeholder: "••••••••",
         autoComplete: "new-password",
         required: true,
-        icon: <Lock className="w-4 h-4"/>,
+        icon: <Lock className="w-4 h-4" />,
         colSpan: 1,
         helper: "8+ символів, краще з цифрами та символами.",
     },
@@ -139,7 +283,7 @@ const FIELDS: FieldDef[] = [
         placeholder: "••••••••",
         autoComplete: "new-password",
         required: true,
-        icon: <Lock className="w-4 h-4"/>,
+        icon: <Lock className="w-4 h-4" />,
         colSpan: 1,
     },
 
@@ -165,6 +309,7 @@ const FIELDS: FieldDef[] = [
 const SECTIONS: FieldDef["section"][] = [
     "Персональні дані",
     "Дані акаунта",
+    "Навчання",
     "Безпека",
     "Підтвердження",
 ]
@@ -220,6 +365,32 @@ export function RegisterForm({
                             {err && <FieldError className="text-xs">{err}</FieldError>}
                         </div>
                     </label>
+                </Field>
+            )
+        }
+
+        // File
+        if (f.type === "file") {
+            const value = (form[f.name] as unknown as File | null) ?? null
+
+            return (
+                <Field
+                    key={String(f.name)}
+                    data-invalid={invalid || undefined}
+                    className={cn(f.colSpan === 2 ? "md:col-span-2" : "")}
+                >
+                    <FieldLabel className="text-sm font-medium">
+                        {f.label}
+                        {!f.required && " (опційно)"}
+                    </FieldLabel>
+
+                    <AvatarPicker
+                        value={value}
+                        onChange={(file) => onFieldChange(f.name, file as any)}
+                        helper={f.helper}
+                        error={err}
+                        maxSizeMb={5}
+                    />
                 </Field>
             )
         }
@@ -305,7 +476,7 @@ export function RegisterForm({
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                             aria-label={show ? "Сховати пароль" : "Показати пароль"}
                         >
-                            {show ? <EyeOff className="w-4 h-4"/> : <Eye className="w-4 h-4"/>}
+                            {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                     )}
                 </div>
@@ -316,8 +487,7 @@ export function RegisterForm({
                     </FieldDescription>
                 )}
 
-                {f.helper && f.name !== "password" &&
-                    <FieldDescription className="text-xs">{f.helper}</FieldDescription>}
+                {f.helper && f.name !== "password" && <FieldDescription className="text-xs">{f.helper}</FieldDescription>}
                 {err && <FieldError className="text-xs mt-1">{err}</FieldError>}
             </Field>
         )
@@ -325,8 +495,7 @@ export function RegisterForm({
 
     return (
         <div className={cn("flex flex-col gap-6 justify-center items-center w-full", className)}>
-            <Card
-                className="overflow-hidden p-0 w-full shadow-xl border-0 bg-gradient-to-br from-background via-background to-muted/20">
+            <Card className="overflow-hidden p-0 w-full shadow-xl border-0 bg-gradient-to-br from-background via-background to-muted/20">
                 <CardContent className="grid p-0">
                     <form onSubmit={onSubmit} className="p-8 md:p-10">
                         <FieldGroup>
@@ -344,11 +513,11 @@ export function RegisterForm({
                                 return (
                                     <div key={section} className="mt-4">
                                         <div className="flex items-center gap-2 mb-3">
-                                            <div className="h-px flex-1 bg-border/60"/>
+                                            <div className="h-px flex-1 bg-border/60" />
                                             <h2 className="text-xs font-semibold tracking-wide text-muted-foreground">
                                                 {section}
                                             </h2>
-                                            <div className="h-px flex-1 bg-border/60"/>
+                                            <div className="h-px flex-1 bg-border/60" />
                                         </div>
 
                                         <div className="grid gap-4 md:grid-cols-2">
@@ -367,14 +536,12 @@ export function RegisterForm({
                                 >
                                     {isPending ? (
                                         <span className="flex items-center gap-2">
-                                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"
-                                                    fill="none"/>
-                                            <path className="opacity-75" fill="currentColor"
-                                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                                          </svg>
-                                          Реєструємо…
-                                        </span>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Реєструємо…
+                    </span>
                                     ) : "Зареєструватись"}
                                 </Button>
                             </div>
@@ -396,3 +563,27 @@ export function RegisterForm({
         </div>
     )
 }
+
+/** ===== Optional: starter initial state =====
+ export const registerInitialState: RegisterFormData = {
+ last_name: "",
+ first_name: "",
+ middle_name: "",
+ username: "",
+ email: "",
+ phone: "",
+ university: "",
+ faculty: "",
+ specialty: "",
+ group: "",
+ course: "",
+ language: "uk",
+ timezone: "Europe/Zaporozhye",
+ referral_code: "",
+ avatar: null,
+ password: "",
+ password_confirmation: "",
+ agree_terms: false,
+ marketing_opt_in: false,
+ }
+ */

@@ -24,7 +24,7 @@ function toFormData(form: RegisterFormData): FormData {
     if (form.faculty) fd.append("faculty", form.faculty);
     if (form.specialty) fd.append("specialty", form.specialty);
     if (form.group) fd.append("group", form.group);
-    if (form.course) fd.append("course", String(form.course)); // якщо string — ок
+    if (form.course) fd.append("course", String(form.course));
 
     // Налаштування
     fd.append("language", form.language || "uk");
@@ -56,8 +56,6 @@ export function useSignUp() {
 
             const fd = toFormData(form);
 
-            // ВАЖЛИВО: не ставити Content-Type вручну.
-            // FormData сам поставить boundary.
             return apiFetch<User>(ENDPOINTS.auth.register, {
                 method: "POST",
                 body: fd,
