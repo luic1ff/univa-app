@@ -17,26 +17,6 @@ function toFormData(form: RegisterFormData): FormData {
     // Акаунт
     fd.append("username", form.username);
     fd.append("email", form.email);
-    if (form.phone) fd.append("phone", form.phone);
-
-    // Навчання
-    if (form.university) fd.append("university", form.university);
-    if (form.faculty) fd.append("faculty", form.faculty);
-    if (form.specialty) fd.append("specialty", form.specialty);
-    if (form.group) fd.append("group", form.group);
-    if (form.course) fd.append("course", String(form.course));
-
-    // Налаштування
-    fd.append("language", form.language || "uk");
-    fd.append("timezone", form.timezone || "Europe/Zaporozhye");
-
-    // Додатково
-    if (form.referral_code) fd.append("referral_code", form.referral_code);
-
-    // Файл
-    if (form.avatar instanceof File) {
-        fd.append("avatar", form.avatar);
-    }
 
     // Безпека
     fd.append("password", form.password);

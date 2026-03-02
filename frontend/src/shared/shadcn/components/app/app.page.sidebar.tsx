@@ -80,9 +80,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const user = useAuthUser()
 
     const navUser = {
-        name: user?.full_name ?? user?.first_name ?? "...",
+        name: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "...",
         email: user?.email ?? "",
-        avatar: user?.avatar_path ?? "",
+        avatar: user?.avatarPath ?? "",
     }
 
     return (

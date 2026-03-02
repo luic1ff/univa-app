@@ -17,6 +17,7 @@ class User extends Authenticatable
         'username',
         'email',
         'password',
+        'avatar_path',
         'agree_terms',
         'marketing_opt_in',
     ];

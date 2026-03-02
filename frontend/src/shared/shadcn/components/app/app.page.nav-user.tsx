@@ -3,7 +3,7 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "@/shared/shadcn/ui/avatar.tsx"
+} from "@/shared/shadcn/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,32 +12,48 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/shared/shadcn/ui/dropdown-menu.tsx"
+} from "@/shared/shadcn/ui/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/shared/shadcn/ui/sidebar.tsx"
+} from "@/shared/shadcn/ui/sidebar"
 import { ChevronsUpDownIcon, LogOutIcon, SettingsIcon } from "lucide-react"
 
-export function AppPageNavUser({
-  user,
-}: {
-  user: {
-    name: string
-    email: string
-    avatar: string
-  }
-}) {
+interface NavUser {
+  name: string
+  email: string
+  avatar: string
+}
+
+type Props = {
+  user: NavUser
+  onLogout?: () => void
+  avatarBaseUrl?: string
+}
+
+function buildAvatarUrl(avatar: string | null | undefined, baseUrl?: string) {
+  if (!avatar) return undefined
+  if (avatar.startsWith("http://") || avatar.startsWith("https://")) return avatar
+  if (!baseUrl) return avatar
+  return `${baseUrl.replace(/\/$/, "")}/${avatar.replace(/^\//, "")}`
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/)
+  return parts
+    .slice(0, 2)
+    .map(p => p[0] ?? "")
+    .join("")
+    .toUpperCase() || "U"
+}
+
+export function AppPageNavUser({ user, onLogout: _onLogout, avatarBaseUrl }: Props) {
   const { isMobile } = useSidebar()
 
-  const initials = user.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2)
+  const initials = getInitials(user.name)
+  const avatarUrl = buildAvatarUrl(user.avatar, avatarBaseUrl)
 
   return (
     <SidebarMenu>
@@ -49,7 +65,7 @@ export function AppPageNavUser({
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={avatarUrl} alt={user.name} />
                 <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -68,7 +84,7 @@ export function AppPageNavUser({
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={avatarUrl} alt={user.name} />
                   <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">

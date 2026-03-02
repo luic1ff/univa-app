@@ -137,8 +137,12 @@ export function HomePage() {
     usePageTitle("Головна", { suffix: true });
 
     const authUser = useAuthUser();
-    const userName = authUser?.first_name ?? authUser?.full_name ?? "";
-    const userAvatar = authUser?.avatar_path ?? "";
+    const userName = authUser?.firstName ?? "";
+    const userFullName = [authUser?.firstName, authUser?.lastName].filter(Boolean).join(" ");
+    const userAvatar = authUser?.avatarPath ?? "";
+    const userInitials = userFullName
+        ? userFullName.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase()
+        : "?";
 
     const progressPct = Math.round((weeklyProgress.done / weeklyProgress.total) * 100);
     const maxTasks = Math.max(...weekActivity.map(d => d.tasks));
@@ -153,9 +157,9 @@ export function HomePage() {
             {/* ─── Greeting ─── */}
             <motion.section variants={itemVariants} className="flex items-center gap-4">
                 <Avatar className="h-14 w-14">
-                    <AvatarImage src={userAvatar} alt={userName} />
+                    <AvatarImage src={userAvatar} alt={userFullName} />
                     <AvatarFallback className="text-lg font-semibold">
-                        {userName.slice(0, 2).toUpperCase()}
+                        {userInitials}
                     </AvatarFallback>
                 </Avatar>
                 <div>
