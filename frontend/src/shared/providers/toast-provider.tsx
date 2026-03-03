@@ -167,7 +167,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                                     alignItems: "center",
                                     justifyContent: "center",
                                 }}>
-                                    <IconComp size={15} style={{ color: v.accent }} />
+                                    <span style={{ color: v.accent }}>
+                                        <IconComp size={15} />
+                                    </span>
                                 </div>
 
                                 {/* Content */}
