@@ -1,5 +1,5 @@
 import usePageTitle from "@/shared/hooks/usePageTitle.ts";
-import { useAuthUser } from "@/entities/user/model/useAuthUser";
+import { useAuthUser } from "@/entities/user/model/useAuthUser.ts";
 import { motion } from "framer-motion";
 import {
     CalendarDaysIcon,
@@ -134,7 +134,7 @@ const itemVariants = {
 
 // ── Component ───────────────────────────────────────────────
 
-export function HomePage() {
+export function DashboardPage() {
     usePageTitle("Головна", { suffix: true });
 
     const authUser = useAuthUser();
