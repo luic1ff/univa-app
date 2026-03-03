@@ -31,7 +31,7 @@ export interface RecurrenceRule {
 export interface Subject {
     id: number;
     name: string;
-    teacher_name: string | null;
+    teacherName: string | null;
     color: string | null;
 }
 

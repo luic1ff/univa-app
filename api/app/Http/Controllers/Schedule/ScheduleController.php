@@ -28,10 +28,8 @@ class ScheduleController extends Controller
         $from   = Carbon::parse($request->query('from'))->startOfDay();
         $to     = Carbon::parse($request->query('to'))->endOfDay();
 
-        // Lesson instances (rule + exceptions)
         $lessons = $this->scheduleService->buildForRange($userId, $from, $to);
 
-        // Exam events in same range
         $exams = $this->examService->listForUser(
             $userId,
             $from->toDateString(),
@@ -64,7 +62,6 @@ class ScheduleController extends Controller
             ];
         }, $exams);
 
-        // Merge and sort by date → starts_at
         $all = array_merge($lessons, $examInstances);
         usort($all, fn ($a, $b) => strcmp($a['date'] . $a['starts_at'], $b['date'] . $b['starts_at']));
 
