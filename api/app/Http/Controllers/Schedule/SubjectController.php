@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Schedule;
 
 use App\Core\Response\ApiResponse;
+use App\Core\UnivaHttpException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Schedule\StoreSubjectRequest;
 use App\Http\Requests\Schedule\UpdateSubjectRequest;
@@ -25,6 +26,9 @@ class SubjectController extends Controller
         return ApiResponse::ok('Subjects retrieved.', $subjects);
     }
 
+    /**
+     * @throws UnivaHttpException
+     */
     public function store(StoreSubjectRequest $request): JsonResponse
     {
         $subject = $this->service->create((int) auth()->id(), $request->validated());
@@ -32,6 +36,9 @@ class SubjectController extends Controller
         return ApiResponse::created('Subject created.', $subject);
     }
 
+    /**
+     * @throws UnivaHttpException
+     */
     public function update(UpdateSubjectRequest $request, Subject $subject): JsonResponse
     {
         $this->authorize('update', $subject);
