@@ -55,6 +55,16 @@ jobs:
             echo "GID=1000" >> .env
           fi
 
+      - name: Create frontend .env (if not exists)
+        shell: bash
+        run: |
+          if [ ! -f frontend/.env ] && [ -f frontend/.env.example ]; then
+          cp frontend/.env.example frontend/.env
+          elif [ ! -f frontend/.env ]; then
+          mkdir -p frontend
+          touch frontend/.env
+          fi
+
       - name: Validate docker-compose syntax
         shell: bash
         run: docker compose config --quiet
