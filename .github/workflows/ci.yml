@@ -41,9 +41,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Create dummy env
+      - name: Create dummy api env
         shell: bash
         run: cp api/.env.example api/.env
+
+      - name: Create root .env (if not exists)
+        shell: bash
+        run: |
+          if [ ! -f .env ] && [ -f .env.example ]; then
+            cp .env.example .env
+          elif [ ! -f .env ]; then
+            echo "UID=1000" > .env
+            echo "GID=1000" >> .env
+          fi
 
       - name: Validate docker-compose syntax
         shell: bash
