@@ -1,5 +1,5 @@
 # docker/development/php-cli/Dockerfile
-ARG PHP_VERSION=8.2
+ARG PHP_VERSION=8.4
 FROM php:${PHP_VERSION}-cli-alpine AS base
 
 ARG UID=1000

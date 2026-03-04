@@ -2,9 +2,9 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [feature/* , develop, main]
+    branches: [feature/*, fix/*, develop, main]
   pull_request:
-    branches: [feature/* , develop, main]
+    branches: [feature/*, fix/*, develop, main]
 
 env:
   REGISTRY: ghcr.io
@@ -22,6 +22,10 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      - name: Bypass PowerShell execution policy
+        shell: powershell
+        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+
       - name: Fix workspace permissions
         run: |
           if [ -d "${{ github.workspace }}" ]; then
@@ -71,6 +75,10 @@ jobs:
     needs: lint
 
     steps:
+      - name: Bypass PowerShell execution policy
+        shell: powershell
+        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+
       - name: Fix workspace permissions
         run: |
           if [ -d "${{ github.workspace }}" ]; then
@@ -196,6 +204,10 @@ jobs:
     needs: build
 
     steps:
+      - name: Bypass PowerShell execution policy
+        shell: powershell
+        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+
       - name: Fix workspace permissions
         run: |
           if [ -d "${{ github.workspace }}" ]; then
@@ -334,6 +346,10 @@ jobs:
     needs: lint
 
     steps:
+      - name: Bypass PowerShell execution policy
+        shell: powershell
+        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+
       - name: Fix workspace permissions
         run: |
           if [ -d "${{ github.workspace }}" ]; then
@@ -396,6 +412,10 @@ jobs:
       packages: write
 
     steps:
+      - name: Bypass PowerShell execution policy
+        shell: powershell
+        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+
       - name: Fix workspace permissions
         run: |
           if [ -d "${{ github.workspace }}" ]; then
