@@ -181,7 +181,7 @@ function SubjectCard({ subject, onEdit, onDelete }: CardProps) {
                     <div className="flex items-center gap-2 min-w-0">
                         <div
                             className="w-2.5 h-2.5 rounded-full shrink-0 ring-2 ring-offset-2 ring-offset-background transition-colors"
-                            style={{ backgroundColor: accent, ringColor: `${accent}40` }}
+                            style={{ backgroundColor: accent }}
                         />
                         <h3
                             className="font-bold text-sm text-foreground truncate leading-tight"

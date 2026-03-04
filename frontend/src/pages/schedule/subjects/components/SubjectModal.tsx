@@ -138,7 +138,7 @@ export function SubjectModal({ subject, onClose }: Props) {
                             <span className="text-xs text-muted-foreground">Обраний колір</span>
                             <div
                                 className="w-4 h-4 rounded-full ml-auto shadow-sm ring-2 ring-offset-2 ring-offset-muted/20 transition-colors duration-300"
-                                style={{ backgroundColor: form.color, ringColor: form.color }}
+                                style={{ backgroundColor: form.color }}
                             />
                             <code className="text-[10px] font-mono text-muted-foreground">{form.color}</code>
                         </div>
